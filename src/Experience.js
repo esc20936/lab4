@@ -3,7 +3,17 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import model from "./assets/spiderman.glb?url";
 // import gradientT from "./assets/3.jpg?url";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import toonVertexShader from './Shaders/toon/vertex.glsl'
+import toonFragmentShader from './Shaders/toon/fragment.glsl'
 
+import oilVertexShader from './Shaders/oil/vertex.glsl'
+import oilFragmentShader from './Shaders/oil/fragment.glsl'
+
+import transparentVertexShader from './Shaders/Transparent/vertex.glsl'
+import transparentFragmentShader from './Shaders/Transparent/fragment.glsl'
+
+import rainbowVertexShader from './Shaders/rainbow/vertex.glsl'
+import rainbowFragmentShader from './Shaders/rainbow/fragment.glsl'
 
 
 // Canvas
@@ -30,39 +40,48 @@ const camera = new THREE.PerspectiveCamera(
     100
 );
 
+const convertToRadians = (angle) => {
+    return angle * (Math.PI / 180);
+}
+
 camera.position.x = 0;
-camera.position.y = 5;
-camera.position.z = 3;
+camera.position.y = 2;
+camera.position.z = 30;
 scene.add(camera);
 
-const textureLoader = new THREE.TextureLoader();
-let gradientTexture = textureLoader.load("/3.jpg");
-const material = new THREE.MeshToonMaterial({ 
-                gradientMap: gradientTexture })
-// load spiderman  glb model
-let spiderman = null;
-const gltfLoader = new GLTFLoader();
-gltfLoader.load(model, (gltf) => {
-  gltf.scene.traverse((child) => {
 
-    if (child.isMesh) {
-        console.log(child);
-        child.material = material;
-    }
-    if (child.type == "SkinnedMesh") {
-        child.frustumCulled = false;
-        child.material = material;
-      }
-
-   
-  });
-  spiderman = gltf.scene;
-  spiderman.scale.set(2, 2, 2);
-  spiderman.position.set(0, -1, 0);
-
-  scene.add(spiderman);
+const oilShader = new THREE.RawShaderMaterial({
+    vertexShader: oilVertexShader,
+    fragmentShader: oilFragmentShader,
+    // wireframe: true,
+});
+const toonShader = new THREE.RawShaderMaterial({
+    vertexShader: toonVertexShader,
+    fragmentShader: toonFragmentShader,
+    // wireframe: true,
 });
 
+const transparentShader = new THREE.RawShaderMaterial({
+    vertexShader: transparentVertexShader,
+    fragmentShader: transparentFragmentShader,
+    // wireframe: true,
+});
+
+const rainbowShader = new THREE.RawShaderMaterial({
+    vertexShader: rainbowVertexShader,
+    fragmentShader: rainbowFragmentShader,
+    wireframe: true,
+});
+
+const shadersArray = [toonShader,oilShader , transparentShader, rainbowShader];
+let CONT = 0;
+
+
+const tourus = new THREE.Mesh(
+    new THREE.TorusKnotGeometry(10, 3, 143, 15),
+    shadersArray[CONT]
+);
+scene.add(tourus);
 
 /**
  * Renderer
@@ -75,7 +94,7 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 // add light to model
-const ambientLight = new THREE.AmbientLight(0x000000, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
 // const pointLight = new THREE.PointLight(0xff0000, 1);
@@ -86,6 +105,17 @@ const pointLight2 = new THREE.PointLight(0xfff, 1);
 pointLight2.position.set(1, 2, 0);
 scene.add(pointLight2);
 
+
+// event on key press
+document.addEventListener("keydown", (event) => {
+    if (event.code == "KeyA") {
+        CONT++;
+        if (CONT >= shadersArray.length) {
+            CONT = 0;
+        }
+        tourus.material = shadersArray[CONT];
+    }
+});
 
 window.addEventListener('resize', () => {
     sizes.width = window.innerWidth;
